@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bunny Kingdom - Scoring Assistant</title>
+    <style>
+        body { 
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+			display: flex; 
+			background: #f0f2f5; 
+			margin: 0; 
+			height: 100vh; 
+			overflow: hidden; 
+		}
+		
+        #app-container { 
+			display: flex; 
+			width: 100%; 
+			padding: 20px; 
+			gap: 20px; }
+			
+        #boards-wrapper { 
+			flex: 0 0 auto; 
+			display: flex; 
+			flex-direction: column; 
+			gap: 10px; 
+			overflow-y: auto; 
+			padding-bottom: 40px; 
+			padding-right: 20px;
+		}
+        .board-section { 
+			background: #fff; 
+			padding: 15px; 
+			box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+		}
+        .grid { 
+			display: grid; 
+			grid-template-columns: repeat(10, 60px); 
+			grid-template-rows: repeat(10, 60px); 
+		}
+        #cloud-grid-container { 
+			display: flex; 
+			flex-direction: column; 
+			align-items: 
+			center; padding: 10px; 
+		}
+        .cloud-row { 
+			display: flex; 
+			justify-content: center; 
+		}
+        .tile { 
+			width: 60px; 
+			height: 60px; 
+			display: flex; 
+			align-items: center; 
+			justify-content: center; 
+			cursor: pointer; 
+			position: relative; 
+			box-sizing: border-box; 
+			background: #fff; 
+			transition: transform 0.1s; 
+			background-size: cover; 
+			background-position: center; 
+			background-repeat: no-repeat;
+		}
+        .tile:hover { 
+			transform: scale(1.05);
+		}
+        .tile.selected { 
+			outline: 2px solid #333; 
+			z-index: 50; 
+		}
+        .coord-label {
+			position: absolute;
+			bottom: 2px;
+			left: 2px;
+			font-size: 10px;
+			font-weight: bold;
+			pointer-events: none;
+			z-index: 10;
+			color: #FFD700; 
+			text-shadow: 
+				-1px -1px 0 #5D4037,  
+				 1px -1px 0 #5D4037,
+				-1px  1px 0 #5D4037,
+				 1px  1px 0 #5D4037,
+				 0px  1px 2px rgba(0,0,0,0.5);
+		}
+        .default-res { 
+			position: absolute; 
+			top: 2px; 
+			left: 2px; 
+			font-size: 14px; 
+			pointer-events: none; 
+		}
+        .player-center { font-size: 26px; z-index: 5; pointer-events: none; }
+		.feature-bottom-right {
+			position: absolute;
+			bottom: 0; 
+			right: 0; 
+			z-index: 2;
+			pointer-events: none;
+			width: 100%;  
+			height: 100%; 
+			display: flex;
+			align-items: flex-end;  
+			justify-content: flex-end;
+			line-height: 1;
+		}
+
+		.feature-bottom-right img {
+			width: 100%; 
+			height: 100%; 
+			object-fit: contain;
+		}
+        
+		.lava-top { border-top: 1px  rgba(211, 47, 47, 0.2) !important; }
+		.lava-bottom { border-bottom: 1px  rgba(211, 47, 47, 0.2) !important; }
+		.lava-left { border-left: 1px  rgba(211, 47, 47, 0.2) !important; }
+		.lava-right { border-right: 1px  rgba(211, 47, 47, 0.2) !important; }
+
+        #sidebar { 
+			flex: 1; 
+			display: flex; 
+			flex-direction: column; 
+			gap: 15px; 
+			overflow-y: auto; 
+			padding-right: 5px; 
+		}
+        .panel { 
+			background: #fff; 
+			padding: 15px; 
+			box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+		}
+        
+        details.player-card { 
+			margin-bottom: 2px; 
+			border: 1px solid #ddd; 
+			overflow: hidden; 
+			background: #fff; 
+		}
+        summary.player-header { 
+			padding: 12px; 
+			font-weight: bold; 
+			color: white; 
+			display: flex; 
+			justify-content: space-between; 
+			align-items: center; 
+			cursor: pointer; 
+		}
+        .player-stats { 
+			padding: 15px; 
+			border-top: 1px solid #eee; 
+		}
+        .res-summary-pill { 
+			display: inline-flex; 
+			align-items: center; 
+			background: #f0f0f0; 
+			padding: 3px 8px 3px 3px; 
+			margin-right: 3px; 
+			font-size: 11px; 
+			font-weight: bold; 
+			margin-bottom: 3px; 
+			gap: 3px; 
+		}
+        .res-summary-pill img { 
+			width: 14px; 
+			height: 14px; 
+		}
+        
+        .fief-row { 
+			font-size: 12px; 
+			padding: 8px 0; 
+			border-bottom: 1px solid #f0f0f0; 
+			display: flex; 
+			flex-direction: column; 
+			gap: 3px; 
+		}
+        .fief-row:last-child { 
+			border-bottom: none; 
+		}
+        .fief-meta { 
+			color: #666; 
+			font-weight: bold; 
+			display: flex; 
+			justify-content: space-between; 
+			margin-bottom: 2px; 
+		}
+        .fief-res-list { 
+			font-size: 15px; 
+			display: flex; 
+			gap: 2px; 
+			flex-wrap: wrap; 
+		}
+        .fief-res-list img { 
+			width: 20px; 
+			height: 20px; 
+		}
+        
+        .btn-group { 
+			display: flex; 
+			flex-wrap: wrap; 
+			gap: 4px; 
+			margin-top: 8px; 
+			margin-bottom: 12px; 
+		}
+        button { 
+			display: inline-flex; 
+			align-items: center; 
+			gap: 4px; 
+			padding: 7px 10px; 
+			cursor: pointer; 
+			border: 1px solid #ccc; 
+			background: #fff; 
+			font-size: 12px; 
+		}
+        button img { 
+			height: 16px; 
+		}
+        button.active-btn { 
+			background: #333 !important; 
+			color: #eee !important; 
+		}
+        .danger-btn { 
+			width: 100%; 
+			margin-top: 20px; 
+			background: #fff1f1; 
+			color: #d32f2f; 
+			border: 1px solid #ffcdd2; 
+			padding: 10px; 
+			cursor: pointer; 
+		}
+        .section-header { 
+			border-bottom: 1px solid #eee; 
+			padding-bottom: 5px; 
+			margin-bottom: 10px; 
+			font-weight: bold; 
+			font-size: 13px; 
+			color: #444; 
+		}
+        
+        .exp-ui-box { 
+			font-size: 11px; 
+			margin-bottom: 10px; 
+			padding: 8px; 
+			display: flex; 
+			flex-direction: column; 
+			gap: 5px; 
+		}
+        .chimney-config { background: #fff8e1; border: 1px solid #ffe082; }
+        .trade-config { background: #e8f5e9; border: 1px solid #c8e6c9; }
+        .tp-config { background: #f3e5f5; border: 1px solid #e1bee7; margin-top: 5px; }
+        
+        .add-player-btn { 
+			border: 2px dashed #ccc; 
+			color: #888; 
+			background: #fafafa; 
+			ont-weight: bold; 
+			padding: 5px; 
+			flex: 1 1 calc(33% - 10px); 
+			min-width: 90px;
+		}
+        .add-player-btn:hover { 
+			border-color: #999; 
+			background: #f0f0f0; 
+		}
+        .remove-player { 
+			background: rgba(0,0,0,0.2); 
+			border: none; 
+			color: white; 
+			border-radius: 50%; 
+			width: 22px; 
+			height: 22px; 
+			display: flex; 
+			align-items: center; 
+			justify-content: center; 
+			font-size: 14px; 
+			cursor: pointer; 
+		}
+
+		.tile img {
+			max-width: 80%;
+			max-height: 80%;
+			object-fit: contain;
+			pointer-events: none;
+		}
+		.player-center img {
+			width: 40%;
+			height: 40%;
+			object-fit: contain;
+			transform: translate(70%, 10%);
+		}
+		
+		.token-res {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			display: flex;
+			align-items: flex-end;    /* Push to bottom */
+			justify-content: flex-end; /* Push to right */
+			pointer-events: none;
+			z-index: 3;
+		}
+
+		.token-res img {
+			width: 100%;  /* Scale to tile width */
+			height: 100%; /* Scale to tile height */
+			object-fit: contain; /* Maintain aspect ratio while filling space */
+		}
+
+		/* Ensure default res stays top-left */
+		.default-res {
+			position: absolute;
+			top: 2px;
+			left: 2px;
+			pointer-events: none;
+		}
+
+		.default-res img {
+			width: 20px;
+			height: 20px;
+		}
+		
+		.ui-icon {
+			width: 16px;
+			height: 16px;
+			vertical-align: middle;
+			object-fit: contain;
+		}
+
+		.btn-large .ui-icon {
+			width: 24px;
+			height: 24px;
+		}
+		
+		.ui-icon-score {
+			width: 20px;
+			height: 20px;
+			vertical-align: middle;
+			object-fit: contain;
+			margin-right: 6px;
+		}
+	</style>
+</head>
+<body>
+
+<div id="app-container">
+    <div id="boards-wrapper">
+        <div id="cloud-section" class="board-section" style="display:none">
+            <h2 style="margin:0 0 10px 0; color: #1976d2;">The Great Cloud</h2>
+            <div id="cloud-grid-container"></div>
+        </div>
+        <div id="grid-container" class="board-section">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                <h2 id="main-title" style="margin:0">The New World</h2>
+                <div style="display:flex; align-items:center; gap:8px; font-size:14px; color:#666;">
+                    <input type="checkbox" id="sky-toggle" onchange="toggleExpansion()">
+                    <label for="sky-toggle">"In The Sky" Expansion</label>
+                </div>
+            </div>
+            <div class="grid" id="game-grid"></div>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <div class="panel">
+            <h3 style="margin-top:0">Harvest & Scoring</h3>
+            <div id="player-setup-ui">
+                <div class="section-header">Add Players</div>
+                <div class="btn-group" id="available-colors-pool"></div>
+            </div>
+            <div id="score-display"></div>
+        </div>
+        
+        <div id="editor-panel" class="panel" style="display:none">
+            <h3 id="tile-coord-header" style="margin-top:0">A1</h3>
+            <div class="section-header">Occupant</div>
+            <div class="btn-group" id="tile-occupant-btns"></div>
+
+            <div class="section-header">Tokens</div>
+            <div id="token-controls">
+				<div class="btn-group">
+					<button onclick="applyFeature('city', 1)" id="btn-c1"><img src="assets/icon/city1.png" class="ui-icon"> Lvl 1</button>
+					<button onclick="applyFeature('city', 2)" id="btn-c2"><img src="assets/icon/city2.png" class="ui-icon"> Lvl 2</button>
+					<button onclick="applyFeature('city', 3)" id="btn-c3"><img src="assets/icon/city3.png" class="ui-icon"> Lvl 3</button>
+					<button onclick="applyFeature('carrotadel', 0)" id="btn-carrotadel" style="display:none"><img src="assets/icon/carrotadel.png" class="ui-icon"> Carrotadel</button>
+				</div>
+                <div class="btn-group">
+                    <button onclick="applyFeature('res', 'Wood')" id="btn-Wood"><img src="assets/icon/wood.png"> Wood</button>
+                    <button onclick="applyFeature('res', 'Fish')" id="btn-Fish"><img src="assets/icon/fish.png"> Fish</button>
+                    <button onclick="applyFeature('res', 'Carrot')" id="btn-Carrot"><img src="assets/icon/carrot.png"> Carrot</button>
+                    <button onclick="applyFeature('res', 'Mushroom')" id="btn-Mushroom"><img src="assets/icon/mushroom.png"> Mushroom</button>
+                    <button onclick="applyFeature('res', 'Pearl')" id="btn-Pearl"><img src="assets/icon/pearl.png"> Pearl</button>
+                    <button onclick="applyFeature('res', 'Spice')" id="btn-Spice"><img src="assets/icon/spice.png"> Spices</button>
+                    <button onclick="applyFeature('res', 'Diamond')" id="btn-Diamond"><img src="assets/icon/diamond.png"> Diamonds</button>
+                    <button onclick="applyFeature('res', 'Clay')" id="btn-Clay"><img src="assets/icon/clay.png"> Clay</button>
+                    <button onclick="applyFeature('res', 'Gold')" id="btn-Gold"><img src="assets/icon/gold.png"> Gold</button>
+                    <button onclick="applyFeature('res', 'Metal')" id="btn-Metal"><img src="assets/icon/metal.png"> Metal</button>
+                    <span id="sky-res-tokens" style="display:none; gap:4px;">
+                        <button onclick="applyFeature('res', 'CloudThread')" id="btn-CloudThread"><img src="assets/icon/thread.png"> Cloud Thread</button>
+                        <button onclick="applyFeature('res', 'GiantChicks')" id="btn-GiantChicks"><img src="assets/icon/chick.png"> Giant Chicks</button>
+                    </span>
+                </div>
+                <div class="btn-group">
+                    <button onclick="applyFeature('tower', -1)" id="btn-Tower"><img src="assets/icon/skytower.png">  Sky Tower</button>
+                    <button onclick="applyFeature('tradingpost', 'Wood')" id="btn-TradingPost"><img src="assets/icon/tradepost.png">  Trading Post</button>
+                    <span id="sky-only-tokens" style="display:none; gap:4px;">
+                        <button onclick="applyFeature('rainbow', 'gold')" id="btn-RainbowGold"><img src="assets/icon/rainbow-gold.png">  Rainbow (Gold)</button>
+                        <button onclick="applyFeature('rainbow', 'silver')" id="btn-RainbowSilver"><img src="assets/icon/rainbow-silver.png">  Rainbow (Silver)</button>
+                        <button onclick="applyFeature('chimney', true)" id="btn-Chimney"><img src="assets/icon/chimney.png">  Chimney</button>
+                    </span>
+                    <button style="flex:1" onclick="clearTileTokens()">Remove Token</button>
+                </div>
+				<div id="tower-config-ui" class="exp-ui-box tp-config" style="display:none">
+					<strong>Tower Color:</strong>
+					<select onchange="updateTowerColor(this.value)" id="tower-color-selector">
+						<option value="teal">Teal Pair</option>
+						<option value="blue">Blue Pair</option>
+						<option value="black">Black Pair</option>
+					</select>
+				</div>
+                <div id="tp-ui" class="exp-ui-box tp-config" style="display:none">
+                    <strong>Trading Post Choice:</strong>
+                    <select onchange="updateTPChoice(this.value)" id="tp-selector">
+                        <option value="Wood"><img src="assets/icon/wood.png">  Wood</option>
+                        <option value="Fish"><img src="assets/icon/fish.png">  Fish</option>
+                        <option value="Carrot"><img src="assets/icon/carrot.png">  Carrot</option>
+                    </select>
+                </div>
+                <div id="tower-ui" style="display:none; background:#f0f7ff; padding:10px; margin-top:5px;">
+                    Link to: <input type="text" id="tower-input" placeholder="e.g. A5" oninput="updateTowerLink(this.value)" style="width: 60px; text-transform: uppercase;">
+                </div>
+            </div>
+        </div>
+        <button class="danger-btn" onclick="resetEntireBoard()">Reset</button>
+
+        <div id="footer-credits" style="margin-top: auto; padding: 20px 0; text-align: center; color: #999; font-size: 10px; line-height: 1.5;">
+            Bunny Kingdom &copy; IELLO Games<br>
+            Designed by Richard Garfield, Illustrated by Paul Mafayon<br>
+        </div>
+    </div>
+</div>
+
+<script>
+const boardData = {"tiles": [{"coord": "A1", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "A2", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "A3", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "A4", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "A5", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "A6", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "A7", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "A8", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "A9", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "A10", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "B1", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "B2", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "B3", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "B4", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "B5", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "B6", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "B7", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "B8", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "B9", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "B10", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "C1", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "C2", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "C3", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "C4", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "C5", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "C6", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "C7", "type": "Field", "color": "#F0F4C3", "defaultRes": "Carrot"}, {"coord": "C8", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "C9", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "C10", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "D1", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "D2", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "D3", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "D4", "type": "Field", "color": "#F0F4C3", "defaultRes": "Carrot"}, {"coord": "D5", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "D6", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "D7", "type": "Field", "color": "#F0F4C3", "defaultRes": "Carrot"}, {"coord": "D8", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "D9", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "D10", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "E1", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "E2", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "E3", "type": "Field", "color": "#F0F4C3", "defaultRes": "Carrot"}, {"coord": "E4", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "E5", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "E6", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "E7", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "E8", "type": "Field", "color": "#F0F4C3", "defaultRes": "Carrot"}, {"coord": "E9", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "E10", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "F1", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "F2", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "F3", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "F4", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "F5", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "F6", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "F7", "type": "Field", "color": "#F0F4C3", "defaultRes": "Carrot"}, {"coord": "F8", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "F9", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "F10", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "G1", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "G2", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "G3", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "G4", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "G5", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "G6", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "G7", "type": "Field", "color": "#F0F4C3", "defaultRes": "Carrot"}, {"coord": "G8", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "G9", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "G10", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "H1", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "H2", "type": "Field", "color": "#F0F4C3", "defaultRes": "Carrot"}, {"coord": "H3", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "H4", "type": "Field", "color": "#F0F4C3", "defaultRes": "Carrot"}, {"coord": "H5", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "H6", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "H7", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "H8", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "H9", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "H10", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "I1", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "I2", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "I3", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "I4", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "I5", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "I6", "type": "Plains", "color": "#F5F5F5", "defaultRes": ""}, {"coord": "I7", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "I8", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "I9", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "I10", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "J1", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "J2", "type": "Forest", "color": "#C8E6C9", "defaultRes": "Wood"}, {"coord": "J3", "type": "City", "color": "#E1BEE7", "defaultRes": ""}, {"coord": "J4", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "J5", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "J6", "type": "Field", "color": "#F0F4C3", "defaultRes": "Carrot"}, {"coord": "J7", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "J8", "type": "Mountain", "color": "#E0E0E0", "defaultRes": ""}, {"coord": "J9", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}, {"coord": "J10", "type": "Sea", "color": "#BBDEFB", "defaultRes": "Fish"}], "lava": [[10, 11], [15, 25], [21, 31], [27, 28], [34, 35], [51, 52], [86, 96], [87, 97]]};
+const cloudLayout = [5, 6, 7, 6, 7];
+const cloudResources = { "1-1": "Unicorn", "1-4": "Crystal", "1-5": "Star", "2-1": "Lightning", "2-5": "DragonEgg", "3-1": "Cupcake", "3-2": "Snowman", "3-6": "Feather", "4-1": "Apple", "4-4": "Candy", "4-6": "MagicBean", "5-4": "Wing" };
+const cloudDefaults = { "2-3": { type: "City", res: "", city: 1 }, "2-4": { type: "City", res: "", city: 1 }, "2-6": { type: "City", res: "", city: 1 }, "3-7": { type: "Forest", res: "Wood", city: 0 }, "4-2": { type: "Sea", res: "Fish", city: 0 }, "4-3": { type: "Sea", res: "Fish", city: 0 }, "4-5": { type: "City", res: "", city: 1 }, "5-1": { type: "Field", res: "Carrot", city: 0 }, "5-3": { type: "Field", res: "Carrot", city: 0 }, "5-7": { type: "Forest", res: "Wood", city: 0 } };
+const typeColors = { 'Forest': '#C8E6C9', 'Sea': '#BBDEFB', 'Mountain': '#E0E0E0', 'Field': '#F0F4C3', 'Plains': '#F5F5F5', 'City': '#E1BEE7', 'Wondrous': '#FCE4EC' };
+
+const playerMasterList = ['Red', 'Black', 'Yellow', 'Pink', 'Purple', 'Blue', 'White', 'Green'];
+const playerColors = { 'Red': '#d32f2f', 'Black': '#212121', 'Yellow': '#fbc02d', 'Pink': '#f06292', 'Purple': '#7b1fa2', 'Blue': '#1976d2', 'White': '#9e9e9e', 'Green': '#388e3c' };
+
+const resIcons = { 
+    'Wood': '<img src="assets/token/wood.png" title="Wood">',
+    'Fish': '<img src="assets/token/fish.png" title="Fish">',
+    'Carrot': '<img src="assets/token/carrot.png" title="Carrot">',
+    'Mushroom': '<img src="assets/token/mushroom.png" title="Mushroom">',
+    'Pearl': '<img src="assets/token/pearl.png" title="Pearl">',
+    'Spice': '<img src="assets/token/spices.png" title="Spice">',
+    'Diamond': '<img src="assets/token/diamond.png" title="Diamond">',
+    'Clay': '<img src="assets/token/clay.png" title="Clay">',
+    'Gold': '<img src="assets/token/gold.png" title="Gold">',
+    'Metal': '<img src="assets/token/metal.png" title="Metal">', 
+    'CloudThread': '<img src="assets/token/thread.png" title="CloudThread">', 
+    'GiantChicks': '<img src="assets/token/chick.png" title="GiantChicks">',
+    'Unicorn': '<img src="assets/token/unicorn.png" title="Unicorn">',
+    'Crystal': '<img src="assets/token/bluerose.png" title="Crystal">',
+    'Star': '<img src="assets/token/star.png" title="Star">',
+    'Lightning': '<img src="assets/token/lightning.png" title="Lightning">',
+    'DragonEgg': '<img src="assets/token/dragonegg.png" title="Dragon Egg">',
+    'Cupcake': '<img src="assets/token/cupcake.png" title="Cupcake">',
+    'Snowman': '<img src="assets/token/snow.png" title="Snowman">',
+    'Feather': '<img src="assets/token/feather.png" title="Feather">',
+    'Apple': '<img src="assets/token/apple.png" title="Apple">',
+    'Candy': '<img src="assets/token/candy.png" title="Candy">',
+    'MagicBean': '<img src="assets/token/magicbean.png" title="Magic Beans">',
+    'Wing': '<img src="assets/token/wing.png" title="Wing">',
+    'City1': '<img src="assets/token/city1.png" title="City Level 1">',
+    'City2': '<img src="assets/token/city2.png" title="City Level 2">',
+    'City3': '<img src="assets/token/city3.png" title="City Level 3">',
+    'Carrotadel': '<img src="assets/token/carrotadel.png" title="Carrotadel">',
+    'Chimney': '<img src="assets/token/chimney.png" title="Chimney">',
+    'Tower': '<img src="assets/token/skytower1.png" title="Sky Tower">',
+	'Tower-teal': '<img src="assets/token/skytower1.png" title="Sky Tower">',
+	'Tower-blue': '<img src="assets/token/skytower2.png" title="Sky Tower">',
+	'Tower-black': '<img src="assets/token/skytower3.png" title="Sky Tower">',
+    'RainbowGold': '<img src="assets/token/rainbow-gold.png" title="Golden Rainbow">',
+    'RainbowSilver': '<img src="assets/token/rainbow-silver.png" title="Silver Rainbow">',
+    'TradingPost': '<img src="assets/token/tradepost.png" title="Trading Post">',
+	'TradingPost-Fish': '<img src="assets/token/tradepost-fish.png" title="Trading Post">',
+	'TradingPost-Wood': '<img src="assets/token/tradepost-wood.png" title="Trading Post">',
+	'TradingPost-Carrot': '<img src="assets/token/tradepost-carrot.png" title="Trading Post">',
+};
+
+const uiIcons = {
+	'Wood': '<img src="assets/icon/wood.png" class="ui-icon">',
+	'Fish': '<img src="assets/icon/fish.png" class="ui-icon">',
+	'Carrot': '<img src="assets/icon/carrot.png" class="ui-icon">',
+	'Mushroom': '<img src="assets/icon/mushroom.png" class="ui-icon">',
+	'Pearl': '<img src="assets/icon/pearl.png" class="ui-icon">',
+	'Spice': '<img src="assets/icon/spice.png" class="ui-icon">',
+	'Diamond': '<img src="assets/icon/diamond.png" class="ui-icon">',
+	'Clay': '<img src="assets/icon/clay.png" class="ui-icon">',
+	'Gold': '<img src="assets/icon/gold.png" class="ui-icon">',
+	'Metal': '<img src="assets/icon/metal.png" class="ui-icon">',
+	'CloudThread': '<img src="assets/icon/thread.png" class="ui-icon">',
+	'GiantChicks': '<img src="assets/icon/chick.png" class="ui-icon">',
+	'Unicorn': '<img src="assets/icon/unicorn.png" class="ui-icon">',
+	'Crystal': '<img src="assets/icon/bluerose.png" class="ui-icon">',
+	'Star': '<img src="assets/icon/star.png" class="ui-icon">',
+	'Lightning': '<img src="assets/icon/lightning.png" class="ui-icon">',
+	'DragonEgg': '<img src="assets/icon/dragonegg.png" class="ui-icon">',
+	'Cupcake': '<img src="assets/icon/cupcake.png" class="ui-icon">',
+	'Snowman': '<img src="assets/icon/snow.png" class="ui-icon">',
+	'Feather': '<img src="assets/icon/feather.png" class="ui-icon">',
+	'Apple': '<img src="assets/icon/apple.png" class="ui-icon">',
+	'Candy': '<img src="assets/icon/candy.png" class="ui-icon">',
+	'MagicBean': '<img src="assets/icon/magicbean.png" class="ui-icon">',
+	'Wing': '<img src="assets/icon/wing.png" class="ui-icon">',
+	'RainbowGold': '<img src="assets/icon/rainbow-gold.png" title="Golden Rainbow">',
+    'RainbowSilver': '<img src="assets/icon/rainbow-silver.png" title="Silver Rainbow">',
+	'City1': '<img src="assets/icon/city1.png" class="ui-icon">',
+	'City2': '<img src="assets/icon/city2.png" class="ui-icon">',
+	'City3': '<img src="assets/icon/city3.png" class="ui-icon">',
+	'Carrotadel': '<img src="assets/icon/carrotadel.png" class="ui-icon">',
+	'Chimney': '<img src="assets/icon/chimney.png" class="ui-icon">',
+	'SkyTower': '<img src="assets/icon/skytower.png" class="ui-icon">',
+	'TradingPost': '<img src="assets/icon/tadepost.png" class="ui-icon">',
+};
+
+const defIcons = {
+    'Wood': '<img src="assets/icon/def-wood.png" title="Default Wood">',
+    'Fish': '<img src="assets/icon/def-fish.png" title="Default Fish">',
+    'Carrot': '<img src="assets/icon/def-carrot.png" title="Default Carrot">'
+};
+
+const playerBunnyIcons = {
+    'Red': '<img src="assets/p-red.png"  title="Red Bunny">',
+    'Black': '<img src="assets/p-black.png"  title="Black Bunny">',
+    'Yellow': '<img src="assets/p-yellow.png"  title="Yellow Bunny">',
+    'Pink': '<img src="assets/p-pink.png"  title="Pink Bunny">',
+    'Purple': '<img src="assets/p-purple.png"  title="Purple Bunny">',
+    'Blue': '<img src="assets/p-blue.png"  title="Blue Bunny">',
+    'White': '<img src="assets/p-white.png"  title="White Bunny">',
+    'Green': '<img src="assets/p-green.png"  title="Green Bunny">'
+};
+
+const basicResources = ["Wood", "Fish", "Carrot"];
+
+let activePlayers = [];
+let gridData = [];
+let selectedIdx = null;
+let playerChimneyRes = {}; 
+let playerCoins = {};
+
+function initBoards() {
+    gridData = [];
+    const mainGrid = document.getElementById('game-grid');
+    mainGrid.innerHTML = '';
+    
+    boardData.tiles.forEach((base, i) => {
+        const isFixedCity = base.type === 'City';
+        const tileObj = { ...base, id: i, owner: null, city: isFixedCity ? 1 : 0, res: null, tower: null, rainbow: null, chimney: false, carrotadel: false, tradingpost: null, wondrous: null, isLocked: isFixedCity };
+        gridData.push(tileObj);
+        let el = createTileEl(tileObj, i);
+        boardData.lava.forEach(flow => {
+            if(flow.includes(i)) {
+                let other = flow.find(x => x !== i);
+                if(other === i-10) el.classList.add('lava-top');
+                if(other === i+10) el.classList.add('lava-bottom');
+                if(other === i-1) el.classList.add('lava-left');
+                if(other === i+1) el.classList.add('lava-right');
+            }
+        });
+        mainGrid.appendChild(el);
+    });
+
+    const cloudContainer = document.getElementById('cloud-grid-container');
+    cloudContainer.innerHTML = '';
+    let cloudIdx = 100;
+    cloudLayout.forEach((count, rowIdx) => {
+        const rowNum = rowIdx + 1;
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'cloud-row';
+        for (let tNum = 1; tNum <= count; tNum++) {
+            const key = `${rowNum}-${tNum}`;
+            const def = cloudDefaults[key] || { type: "Plains", res: "", city: 0 };
+            const wondKey = cloudResources[key] || null;
+            const tileObj = { 
+                id: cloudIdx, coord: `${rowNum}-${tNum}`, type: def.type, 
+                color: wondKey ? typeColors['Wondrous'] : (typeColors[def.type] || "#e3f2fd"), 
+                defaultRes: def.res, owner: null, city: def.city, res: null, 
+                tower: null, rainbow: null, chimney: false, carrotadel: false, 
+                tradingpost: null, wondrous: wondKey, isLocked: !!wondKey
+            };
+            if (tileObj.coord === '5-2') { tileObj.rainbowFixed = 'gold'; tileObj.isLocked = true; }
+            if (tileObj.coord === '5-6') { tileObj.rainbowFixed = 'silver'; tileObj.isLocked = true; }
+            gridData.push(tileObj);
+            rowDiv.appendChild(createTileEl(tileObj, cloudIdx));
+            cloudIdx++;
+        }
+        cloudContainer.appendChild(rowDiv);
+    });
+
+    gridData.forEach(t => renderTile(t.id));
+    toggleExpansion(); 
+    renderPlayerControls();
+    calculateScores();
+}
+
+function createTileEl(data, idx) {
+    const div = document.createElement('div');
+    div.className = 'tile'; 
+    div.id = `tile-${idx}`;
+	
+	div.style.backgroundImage = `url('assets/tiles/${data.coord}.png')`;
+    div.style.backgroundColor = data.color;
+    div.onclick = () => selectTile(idx);
+
+    div.innerHTML = `
+        <span class="coord-label">${data.coord}</span>
+        <span class="default-res">${defIcons[data.defaultRes] || ''}</span>
+        <span class="token-res"></span>
+        <div class="player-center"></div>
+        <div class="feature-bottom-right"></div>
+    `;
+    return div;
+}
+
+function renderPlayerControls() {
+    const pool = document.getElementById('available-colors-pool');
+    pool.innerHTML = '';
+    
+    playerMasterList.forEach(color => {
+        if (!activePlayers.includes(color)) {
+            const btn = document.createElement('button');
+            btn.className = 'add-player-btn';
+            btn.innerHTML = `${uiIcons[color] || ''} ${color}`;
+            btn.onclick = () => addPlayer(color);
+            pool.appendChild(btn);
+        }
+    });
+
+    const occContainer = document.getElementById('tile-occupant-btns');
+    occContainer.innerHTML = '';
+    activePlayers.forEach(p => {
+        const btn = document.createElement('button');
+        btn.id = `btn-${p}`;
+        btn.innerHTML = `${playerBunnyIcons[p]} ${p}`;
+        btn.onclick = () => togglePlayer(p);
+        occContainer.appendChild(btn);
+    });
+    const noneBtn = document.createElement('button');
+    noneBtn.id = 'btn-None'; noneBtn.innerText = 'None';
+    noneBtn.onclick = () => togglePlayer(null);
+    occContainer.appendChild(noneBtn);
+}
+
+function addPlayer(color) {
+    if (!activePlayers.includes(color)) {
+        activePlayers.push(color);
+        playerChimneyRes[color] = 'Wood';
+        playerCoins[color] = 0;
+        renderPlayerControls();
+        calculateScores();
+        if(selectedIdx !== null) updateUI();
+    }
+}
+
+function removePlayer(color) {
+    if (confirm(`Remove ${color}? territories will be cleared.`)) {
+        activePlayers = activePlayers.filter(p => p !== color);
+        gridData.forEach(t => { if(t.owner === color) t.owner = null; });
+        gridData.forEach(t => renderTile(t.id));
+        renderPlayerControls();
+        calculateScores();
+        if(selectedIdx !== null) updateUI();
+    }
+}
+
+function toggleExpansion() {
+    const isExpansion = document.getElementById('sky-toggle').checked;
+    document.getElementById('cloud-section').style.display = isExpansion ? 'block' : 'none';
+    document.getElementById('sky-only-tokens').style.display = isExpansion ? 'inline-flex' : 'none';
+    document.getElementById('sky-res-tokens').style.display = isExpansion ? 'inline-flex' : 'none';
+    document.getElementById('btn-carrotadel').style.display = isExpansion ? 'inline-block' : 'none';
+    calculateScores();
+}
+
+function selectTile(idx) {
+    selectedIdx = idx;
+    document.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
+    document.getElementById(`tile-${idx}`).classList.add('selected');
+    document.getElementById('editor-panel').style.display = 'block';
+    const tile = gridData.find(t=>t.id===idx);
+    document.getElementById('tile-coord-header').innerText = tile.coord + ` (${tile.type})`;
+    updateUI();
+}
+
+function updateUI() {
+    const tile = gridData.find(t => t.id === selectedIdx);
+    if(!tile) return;
+	
+    document.querySelectorAll('#tile-occupant-btns button').forEach(b => b.classList.remove('active-btn'));
+    if (tile.owner) {
+        const btn = document.getElementById(`btn-${tile.owner}`);
+        if(btn) btn.classList.add('active-btn');
+    } else {
+        const noneBtn = document.getElementById('btn-None');
+        if(noneBtn) noneBtn.classList.add('active-btn');
+    }
+
+    const isTower = tile.tower !== null;
+    document.getElementById('tower-ui').style.display = isTower ? 'block' : 'none';
+    document.getElementById('tower-config-ui').style.display = isTower ? 'block' : 'none';
+    
+    if (isTower) {
+        document.getElementById('tower-color-selector').value = tile.towerColor || 'teal';
+        const linkedTile = gridData.find(t => t.id === tile.tower);
+        document.getElementById('tower-input').value = linkedTile ? linkedTile.coord : "";
+    }
+
+    document.getElementById('tp-ui').style.display = (tile.tradingpost !== null) ? 'block' : 'none';
+}
+
+
+function updateTowerColor(val) {
+    const tile = gridData.find(t => t.id === selectedIdx);
+    if (tile) {
+        tile.towerColor = val;
+        renderTile(selectedIdx);
+        calculateScores();
+    }
+}
+
+function togglePlayer(color) {
+    const tile = gridData.find(t => t.id === selectedIdx);
+    tile.owner = (tile.owner === color) ? null : color;
+    renderTile(selectedIdx); updateUI(); calculateScores();
+}
+
+function renderTile(idx) {
+    const t = gridData.find(item => item.id === idx);
+    const el = document.getElementById(`tile-${idx}`);
+    if (!el) return;
+
+    el.querySelector('.player-center').innerHTML = t.owner ? playerBunnyIcons[t.owner] : "";
+
+    const tokenResEl = el.querySelector('.token-res');
+    tokenResEl.innerHTML = t.res ? resIcons[t.res] : "";
+
+    let featureHtml = "";
+    
+    if (t.wondrous) {
+        featureHtml = resIcons[t.wondrous];
+    } else if (t.rainbowFixed === 'gold' || t.rainbow === 'gold') {
+        featureHtml = resIcons['RainbowGold'];
+    } else if (t.rainbowFixed === 'silver' || t.rainbow === 'silver') {
+        featureHtml = resIcons['RainbowSilver'];
+    } else if (t.carrotadel) {
+        featureHtml = resIcons['Carrotadel'];
+    } else if (t.chimney) {
+        featureHtml = resIcons['Chimney'];
+	} else if (t.tradingpost) {
+        const tpKey = t.tradingpost ? `TradingPost-${t.tradingpost}` : 'TradingPost';
+        featureHtml = resIcons[tpKey] || resIcons['TradingPost'];
+    } else if (t.city > 0) {
+        featureHtml = resIcons[`City${t.city}`];
+	} else if (t.tower !== null) {
+        const towerKey = t.towerColor ? `Tower-${t.towerColor}` : 'Tower';
+        featureHtml = resIcons[towerKey] || resIcons['Tower'];
+    }
+    
+    el.querySelector('.feature-bottom-right').innerHTML = featureHtml;
+}
+
+function applyFeature(type, val) {
+const tile = gridData.find(t => t.id === selectedIdx);
+    if (tile.isLocked) return;
+    
+    tile.city = (tile.type === 'City' ? 1 : 0); 
+    tile.res = null; tile.tower = null; tile.towerColor = null; 
+    tile.carrotadel = false; tile.rainbow = null; 
+    tile.chimney = false; tile.tradingpost = null;
+	
+    if (type === 'city') tile.city = val;
+    else if (type === 'res') tile.res = val;
+    else if (type === 'tower') {
+        tile.tower = -1;
+        tile.towerColor = 'teal'; 
+    }
+    else if (type === 'carrotadel') tile.carrotadel = true;
+    else if (type === 'chimney') tile.chimney = true;
+    else if (type === 'tradingpost') tile.tradingpost = val;
+    else if (type === 'rainbow') tile.rainbow = val;
+    renderTile(selectedIdx); updateUI(); calculateScores();
+}
+
+function clearTileTokens() {
+    const tile = gridData.find(t => t.id === selectedIdx);
+    if (tile.isLocked) return;
+    tile.city = (tile.type === 'City' ? 1 : 0); tile.res = null; tile.tower = null; tile.carrotadel = false; tile.rainbow = null; tile.chimney = false; tile.tradingpost = null;
+    renderTile(selectedIdx); updateUI(); calculateScores();
+}
+
+function updateTPChoice(val) {
+    const tile = gridData.find(t => t.id === selectedIdx);
+    tile.tradingpost = val;
+    renderTile(selectedIdx); calculateScores();
+}
+
+function updateTowerLink(val) {
+    const tile = gridData.find(t => t.id === selectedIdx);
+    const target = gridData.find(t => t.coord.toUpperCase() === val.toUpperCase());
+    if (target) { tile.tower = target.id; calculateScores(); }
+}
+
+function calculateScores() {
+    let html = '';
+    const skyEnabled = document.getElementById('sky-toggle').checked;
+    
+    activePlayers.forEach(p => {
+        let visited = new Set(), totalHarvest = 0, count = 0, fiefDetails = [], globalResKeys = {};
+        let playerHasChimney = gridData.some(t => t.owner === p && t.chimney);
+
+        gridData.forEach(tile => {
+            if (tile.owner === p && !visited.has(tile.id)) {
+                let fiefTiles = [], q = [tile.id]; visited.add(tile.id);
+                while(q.length > 0) {
+                    let currId = q.shift(), ct = gridData.find(t => t.id === currId);
+                    fiefTiles.push(ct);
+                    let neighbors = getAdjacents(currId);
+                    if (ct.tower !== null && ct.tower >= 0) neighbors.push(ct.tower);
+                    gridData.forEach(o => { if(o.tower === currId) neighbors.push(o.id); });
+                    if (ct.rainbow === 'gold') { let target = gridData.find(t => t.coord === '5-2'); if (target) neighbors.push(target.id); }
+                    if (ct.rainbow === 'silver') { let target = gridData.find(t => t.coord === '5-6'); if (target) neighbors.push(target.id); }
+                    if (ct.coord === '5-2') gridData.forEach(o => { if(o.rainbow === 'gold') neighbors.push(o.id); });
+                    if (ct.coord === '5-6') gridData.forEach(o => { if(o.rainbow === 'silver') neighbors.push(o.id); });
+                    neighbors.forEach(ni => {
+                        let nt = gridData.find(t => t.id === ni);
+                        if (nt && nt.owner === p && !visited.has(ni)) { visited.add(ni); q.push(ni); }
+                    });
+                }
+                let strength = fiefTiles.reduce((s, t) => s + (t.city || 0), 0);
+                if (fiefTiles.some(t => t.carrotadel) && strength < 5) strength = 5;
+                
+                let fiefResKeys = new Set();
+                fiefTiles.forEach(t => {
+                    if (t.defaultRes) fiefResKeys.add(t.defaultRes);
+                    if (t.tradingpost) fiefResKeys.add(t.tradingpost);
+                    if (t.res) fiefResKeys.add(t.res);
+                    if (t.wondrous) fiefResKeys.add(t.wondrous);
+                });
+                if (playerHasChimney && fiefTiles.some(t => t.id < 100)) fiefResKeys.add(playerChimneyRes[p]);
+                
+                let fiefScore = strength * fiefResKeys.size;
+                totalHarvest += fiefScore;
+                if (fiefScore > 0) {
+                    let iconHtml = Array.from(fiefResKeys).map(k => uiIcons[k] || resIcons[k] || k).join('');
+                    fiefDetails.push({ size: fiefTiles.length, str: strength, wealth: fiefResKeys.size, score: fiefScore, icons: iconHtml });
+                }
+            }
+            if (tile.owner === p) {
+                count++;
+                [tile.defaultRes, tile.tradingpost, tile.res, tile.wondrous].forEach(key => { 
+                    if(key) globalResKeys[key] = (globalResKeys[key] || 0) + 1; 
+                });
+            }
+        });
+
+        let uniqueLuxuryWondrous = Object.keys(globalResKeys).filter(k => !basicResources.includes(k)).length;
+        let tradeScore = (playerCoins[p] || 0) * uniqueLuxuryWondrous;
+        let summaryPills = Object.entries(globalResKeys).map(([key, c]) => `<span class="res-summary-pill">${uiIcons[key] || resIcons[key]} × ${c}</span>`).join('');
+        let fiefHtml = fiefDetails.map(f => `<div class="fief-row"><div class="fief-meta"><span>${f.size} Tiles | Str: ${f.str} | Wealth: ${f.wealth}</span><span style="color:#2e7d32">${f.score} <img src="assets/icon/score.png" class="ui-icon-score"></span></div><div class="fief-res-list">${f.icons}</div></div>`).join('');
+        
+        let expansionUI = skyEnabled ? `
+            ${playerHasChimney ? `<div class="exp-ui-box chimney-config"><strong>Chimney:</strong><select onchange="setChimneyRes('${p}', this.value)"><option value="Wood" ${playerChimneyRes[p]==='Wood'?'selected':''}><img src="assets/icon/wood.png"> Wood</option><option value="Fish" ${playerChimneyRes[p]==='Fish'?'selected':''}><img src="assets/icon/fish.png"> Fish</option><option value="Carrot" ${playerChimneyRes[p]==='Carrot'?'selected':''}><img src="assets/icon/carrot.png"> Carrot</option></select></div>` : ''}
+            <div class="exp-ui-box trade-config">
+                <div style="display:flex; justify-content:space-between; align-items:center;"><strong>Coins:</strong><input type="number" value="${playerCoins[p]}" oninput="updateCoins('${p}', this.value)" style="width:40px"></div>
+                <div style="font-weight:bold; color: #2e7d32; display:flex; justify-content:space-between;"><span>Trade Score:</span><span>+${tradeScore} <img src="assets/icon/score.png" class="ui-icon-score"></span></div>
+            </div>` : '';
+
+        html += `
+            <details class="player-card">
+                <summary class="player-header" style="background:${playerColors[p]}">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button class="remove-player" onclick="event.stopPropagation(); removePlayer('${p}')">×</button>
+                        <span>${p}</span>
+                    </div>
+                    <span>${totalHarvest + tradeScore} <img src="assets/icon/score.png" class="ui-icon-score"></span>
+                </summary>
+                <div class="player-stats">
+                    ${expansionUI}
+                    <div style="font-weight:bold; margin-bottom:5px; font-size:13px;">Harvest: ${count} Tiles | ${fiefDetails.length} Fiefs</div>
+                    <div style="margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">${summaryPills || 'No resources'}</div>
+                    ${fiefHtml || '<div style="color:#999">No fiefs</div>'}
+                </div>
+            </details>`;
+    });
+    document.getElementById('score-display').innerHTML = html;
+}
+
+function getAdjacents(idx) {
+    let adj = [];
+    if (idx < 100) {
+        if (idx >= 10) adj.push(idx-10); 
+        if (idx < 90) adj.push(idx+10);
+        if (idx % 10 !== 0) adj.push(idx-1); 
+        if (idx % 10 !== 9) adj.push(idx+1);
+        return adj.filter(n => !boardData.lava.some(f => f.includes(idx) && f.includes(n)));
+    } else {
+        const t = gridData.find(i => i.id === idx);
+        if (!t || !t.coord) return [];
+
+        const parts = t.coord.split('-');
+        const r = parseInt(parts[0]);
+        const tN = parseInt(parts[1]);
+
+        const l = gridData.find(i => i.coord === `${r}-${tN-1}`);
+        const ri = gridData.find(i => i.coord === `${r}-${tN+1}`);
+        if(l) adj.push(l.id); 
+        if(ri) adj.push(ri.id);
+
+        gridData.filter(i => {
+            if (i.id < 100) return false; // Ignore main board
+            const p = i.coord.split('-');
+            const iR = parseInt(p[0]);
+            const iT = parseInt(p[1]);
+            
+            return (Math.abs(iR - r) === 1) && (Math.abs(iT - tN) <= 1);
+        }).forEach(n => adj.push(n.id));
+
+        return adj;
+    }
+}
+
+function setChimneyRes(p, val) { playerChimneyRes[p] = val; calculateScores(); }
+function updateCoins(p, val) { playerCoins[p] = parseInt(val) || 0; calculateScores(); }
+function resetEntireBoard() { if(confirm("Reset everything?")) { activePlayers = []; initBoards(); } }
+
+initBoards();
+</script>
+</body>
+</html>
