@@ -11,71 +11,113 @@
 			background: #f0f2f5; 
 			margin: 0; 
 			height: 100vh; 
-			overflow: hidden; 
 		}
 		
         #app-container { 
 			display: flex; 
 			width: 100%; 
-			padding: 20px; 
-			gap: 20px; }
+			padding: 10px; 
+			gap: 20px; 
+			box-sizing: border-box;
+		}
 			
-        #boards-wrapper { 
-			flex: 0 0 auto; 
+        @media (max-width: 900px) {
+			body { overflow-y: auto; height: auto; }
+			#app-container { flex-direction: column; }
+			#boards-wrapper { width: 100%; overflow-x: auto; } 
+			#sidebar { width: 100%; }
+		}
+		
+		@media (max-width: 768px) {
+			#app-container {
+				flex-direction: column;
+				padding: 5px;
+			}
+			
+			#boards-wrapper {
+				padding-right: 0;
+				overflow-x: hidden; 
+			}
+
+			.grid, #cloud-grid-container {
+				max-width: 95vw;
+			}
+		}
+
+		#boards-wrapper { 
+			flex: 1; 
 			display: flex; 
 			flex-direction: column; 
 			gap: 10px; 
 			overflow-y: auto; 
-			padding-bottom: 40px; 
-			padding-right: 20px;
+			min-width: 0; 
 		}
-        .board-section { 
+
+		.board-section { 
 			background: #fff; 
-			padding: 15px; 
+			padding: 10px; 
 			box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+			border-radius: 8px;
+			width: 100%;
+			box-sizing: border-box;
 		}
-        .grid { 
+
+		.grid { 
 			display: grid; 
-			grid-template-columns: repeat(10, 60px); 
-			grid-template-rows: repeat(10, 60px); 
+			grid-template-columns: repeat(10, 1fr); 
+			width: 100%;
+			max-width: 600px; 
+			margin: 0 auto;
+			aspect-ratio: 1 / 1; 
 		}
+		
         #cloud-grid-container { 
-			display: flex; 
-			flex-direction: column; 
-			align-items: 
-			center; padding: 10px; 
+			width: 100%;
+			max-width: 600px;
+			margin: 0 auto;
 		}
-        .cloud-row { 
+
+		.cloud-row { 
 			display: flex; 
-			justify-content: center; 
+			justify-content: center;
+			width: 100%;
+		}
+
+		.cloud-row .tile {
+			flex: 1;
+			max-width: 60px; 
 		}
         .tile { 
-			width: 60px; 
-			height: 60px; 
+			width: 100%; 
+			height: 100%; 
 			display: flex; 
 			align-items: center; 
 			justify-content: center; 
 			cursor: pointer; 
 			position: relative; 
 			box-sizing: border-box; 
-			background: #fff; 
-			transition: transform 0.1s; 
-			background-size: cover; 
-			background-position: center; 
-			background-repeat: no-repeat;
+			background-size: cover;
+			aspect-ratio: 1 / 1;
 		}
         .tile:hover { 
 			transform: scale(1.05);
 		}
         .tile.selected { 
-			outline: 2px solid #333; 
+			outline: 3px solid #1976d2 !important; 
+			outline-offset: -3px;
 			z-index: 50; 
+			animation: pulse-select 1.5s infinite;
+		}
+		@keyframes pulse-select {
+			0% { outline-color: #1976d2; }
+			50% { outline-color: #64b5f6; }
+			100% { outline-color: #1976d2; }
 		}
         .coord-label {
 			position: absolute;
 			bottom: 2px;
 			left: 2px;
-			font-size: 10px;
+			font-size: clamp(6px, 1.5vw, 10px);
 			font-weight: bold;
 			pointer-events: none;
 			z-index: 10;
@@ -87,14 +129,30 @@
 				 1px  1px 0 #5D4037,
 				 0px  1px 2px rgba(0,0,0,0.5);
 		}
-        .default-res { 
-			position: absolute; 
-			top: 2px; 
-			left: 2px; 
-			font-size: 14px; 
-			pointer-events: none; 
+        .default-res {
+			width: 45%;  
+			height: 45%;
+			display: flex;
 		}
-        .player-center { font-size: 26px; z-index: 5; pointer-events: none; }
+		.default-res img {
+			width: 100% !important; 
+			height: auto !important;
+			max-height: 100%;
+			object-fit: contain;
+		}
+        .player-center {
+			width: 100%;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.player-center img {
+			width: 50% !important;
+			height: auto !important;
+			transform: none !important; 
+		}
+		
 		.feature-bottom-right {
 			position: absolute;
 			bottom: 0; 
@@ -125,13 +183,13 @@
 			display: flex; 
 			flex-direction: column; 
 			gap: 15px; 
-			overflow-y: auto; 
-			padding-right: 5px; 
 		}
-        .panel { 
+
+		.panel { 
 			background: #fff; 
 			padding: 15px; 
 			box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+			border-radius: 8px;
 		}
         
         details.player-card { 
@@ -198,25 +256,27 @@
 			height: 20px; 
 		}
         
-        .btn-group { 
-			display: flex; 
-			flex-wrap: wrap; 
-			gap: 4px; 
-			margin-top: 8px; 
-			margin-bottom: 12px; 
-		}
         button { 
 			display: inline-flex; 
 			align-items: center; 
 			gap: 4px; 
-			padding: 7px 10px; 
+			padding: 10px 12px; 
 			cursor: pointer; 
 			border: 1px solid #ccc; 
 			background: #fff; 
-			font-size: 12px; 
+			font-size: 14px; 
+			border-radius: 4px;
 		}
-        button img { 
-			height: 16px; 
+		.btn-group { 
+			display: flex; 
+			flex-wrap: wrap; 
+			gap: 8px; 
+			margin-bottom: 15px; 
+		}
+        button img {
+			height: 1.2em; 
+			width: auto;
+			vertical-align: middle;
 		}
         button.active-btn { 
 			background: #333 !important; 
@@ -285,12 +345,7 @@
 			object-fit: contain;
 			pointer-events: none;
 		}
-		.player-center img {
-			width: 40%;
-			height: 40%;
-			object-fit: contain;
-			transform: translate(70%, 10%);
-		}
+
 		
 		.token-res {
 			position: absolute;
@@ -299,19 +354,18 @@
 			width: 100%;
 			height: 100%;
 			display: flex;
-			align-items: flex-end;    /* Push to bottom */
-			justify-content: flex-end; /* Push to right */
+			align-items: flex-end;
+			justify-content: flex-end; 
 			pointer-events: none;
 			z-index: 3;
 		}
 
 		.token-res img {
-			width: 100%;  /* Scale to tile width */
-			height: 100%; /* Scale to tile height */
-			object-fit: contain; /* Maintain aspect ratio while filling space */
+			width: 100%; 
+			height: 100%;
+			object-fit: contain; 
 		}
 
-		/* Ensure default res stays top-left */
 		.default-res {
 			position: absolute;
 			top: 2px;
@@ -319,30 +373,65 @@
 			pointer-events: none;
 		}
 
-		.default-res img {
-			width: 20px;
-			height: 20px;
-		}
-		
-		.ui-icon {
-			width: 16px;
-			height: 16px;
-			vertical-align: middle;
-			object-fit: contain;
+		.default-res img, .ui-icon, .ui-icon-score {
+			max-width: 80%;
+			height: auto;
 		}
 
-		.btn-large .ui-icon {
+		.btn-large {
 			width: 24px;
 			height: 24px;
 		}
 		
-		.ui-icon-score {
-			width: 20px;
-			height: 20px;
-			vertical-align: middle;
-			object-fit: contain;
-			margin-right: 6px;
+		@keyframes slideUp {
+			from { transform: translateY(100%); }
+			to { transform: translateY(0); }
 		}
+
+		#modal-overlay {
+			display: none; 
+			position: fixed; 
+			top: 0; 
+			left: 0; 
+			width: 100%; 
+			height: 100%; 
+			background: transparent !important; 
+			z-index: 1000; 
+			display: flex; 
+			align-items: flex-end;
+			pointer-events: none; 
+		}
+
+		#editor-panel {
+			width: 100%; 
+			background: #fff;
+			border-radius: 15px 15px 0 0; 
+			max-height: 80vh; 
+			overflow-y: auto; 
+			box-shadow: 0 -2px 10px rgba(0,0,0,0.1); 
+			animation: slideUp 0.3s ease-out;
+			pointer-events: auto; 
+		}
+
+		@media (max-width: 768px) {
+			#editor-panel {
+				padding: 20px;
+				box-sizing: border-box;
+			}
+			
+			#editor-panel .btn-group {
+				justify-content: space-around;
+				gap: 10px;
+			}
+
+			#editor-panel button {
+				flex: 1 1 30%; 
+				justify-content: center;
+				padding: 12px 5px;
+				font-size: 11px;
+			}
+		}
+		
 	</style>
 </head>
 <body>
@@ -374,67 +463,71 @@
             </div>
             <div id="score-display"></div>
         </div>
-        
-        <div id="editor-panel" class="panel" style="display:none">
-            <h3 id="tile-coord-header" style="margin-top:0">A1</h3>
-            <div class="section-header">Occupant</div>
-            <div class="btn-group" id="tile-occupant-btns"></div>
+        <div id="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:flex-end;">
+			<div id="editor-panel" class="panel" style="width:100%; border-radius:15px 15px 0 0; max-height:80vh; overflow-y:auto; animation: slideUp 0.3s ease-out;">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+					<h3 id="tile-coord-header" style="margin:0">A1</h3>
+					<button onclick="closeModal()" style="border:none; background:none; font-size:24px; padding:0 10px;">&times;</button>
+				</div>
+				<div class="section-header">Occupant</div>
+				<div class="btn-group" id="tile-occupant-btns"></div>
 
-            <div class="section-header">Tokens</div>
-            <div id="token-controls">
-				<div class="btn-group">
-					<button onclick="applyFeature('city', 1)" id="btn-c1"><img src="assets/icon/city1.png" class="ui-icon"> Lvl 1</button>
-					<button onclick="applyFeature('city', 2)" id="btn-c2"><img src="assets/icon/city2.png" class="ui-icon"> Lvl 2</button>
-					<button onclick="applyFeature('city', 3)" id="btn-c3"><img src="assets/icon/city3.png" class="ui-icon"> Lvl 3</button>
-					<button onclick="applyFeature('carrotadel', 0)" id="btn-carrotadel" style="display:none"><img src="assets/icon/carrotadel.png" class="ui-icon"> Carrotadel</button>
+				<div class="section-header">Tokens</div>
+				<div id="token-controls">
+					<div class="btn-group">
+						<button onclick="applyFeature('city', 1)" id="btn-c1"><img src="assets/icon/city1.png"> Lvl 1</button>
+						<button onclick="applyFeature('city', 2)" id="btn-c2"><img src="assets/icon/city2.png"> Lvl 2</button>
+						<button onclick="applyFeature('city', 3)" id="btn-c3"><img src="assets/icon/city3.png"> Lvl 3</button>
+						<button onclick="applyFeature('carrotadel', 0)" id="btn-carrotadel" style="display:none"><img src="assets/icon/carrotadel.png"> Carrotadel</button>
+					</div>
+					<div class="btn-group">
+						<button onclick="applyFeature('res', 'Wood')" id="btn-Wood"><img src="assets/icon/wood.png"> Wood</button>
+						<button onclick="applyFeature('res', 'Fish')" id="btn-Fish"><img src="assets/icon/fish.png"> Fish</button>
+						<button onclick="applyFeature('res', 'Carrot')" id="btn-Carrot"><img src="assets/icon/carrot.png"> Carrot</button>
+						<button onclick="applyFeature('res', 'Mushroom')" id="btn-Mushroom"><img src="assets/icon/mushroom.png"> Mushroom</button>
+						<button onclick="applyFeature('res', 'Pearl')" id="btn-Pearl"><img src="assets/icon/pearl.png"> Pearl</button>
+						<button onclick="applyFeature('res', 'Spice')" id="btn-Spice"><img src="assets/icon/spice.png"> Spices</button>
+						<button onclick="applyFeature('res', 'Diamond')" id="btn-Diamond"><img src="assets/icon/diamond.png"> Diamonds</button>
+						<button onclick="applyFeature('res', 'Clay')" id="btn-Clay"><img src="assets/icon/clay.png"> Clay</button>
+						<button onclick="applyFeature('res', 'Gold')" id="btn-Gold"><img src="assets/icon/gold.png"> Gold</button>
+						<button onclick="applyFeature('res', 'Metal')" id="btn-Metal"><img src="assets/icon/metal.png"> Metal</button>
+						<span id="sky-res-tokens" style="display:none; gap:4px;">
+							<button onclick="applyFeature('res', 'CloudThread')" id="btn-CloudThread"><img src="assets/icon/thread.png"> Cloud Thread</button>
+							<button onclick="applyFeature('res', 'GiantChicks')" id="btn-GiantChicks"><img src="assets/icon/chick.png"> Giant Chicks</button>
+						</span>
+					</div>
+					<div class="btn-group">
+						<button onclick="applyFeature('tower', -1)" id="btn-Tower"><img src="assets/icon/skytower.png">  Sky Tower</button>
+						<button onclick="applyFeature('tradingpost', 'Wood')" id="btn-TradingPost"><img src="assets/icon/tradepost.png">  Trading Post</button>
+						<span id="sky-only-tokens" style="display:none; gap:4px;">
+							<button onclick="applyFeature('rainbow', 'gold')" id="btn-RainbowGold"><img src="assets/icon/rainbow-gold.png">  Rainbow (Gold)</button>
+							<button onclick="applyFeature('rainbow', 'silver')" id="btn-RainbowSilver"><img src="assets/icon/rainbow-silver.png">  Rainbow (Silver)</button>
+							<button onclick="applyFeature('chimney', true)" id="btn-Chimney"><img src="assets/icon/chimney.png">  Chimney</button>
+						</span>
+						<button style="flex:1" onclick="clearTileTokens()">Remove Token</button>
+					</div>
+					<div id="tower-config-ui" class="exp-ui-box tp-config" style="display:none">
+						<strong>Tower Color:</strong>
+						<select onchange="updateTowerColor(this.value)" id="tower-color-selector">
+							<option value="teal">Teal Pair</option>
+							<option value="blue">Blue Pair</option>
+							<option value="black">Black Pair</option>
+						</select>
+					</div>
+					<div id="tp-ui" class="exp-ui-box tp-config" style="display:none">
+						<strong>Trading Post Choice:</strong>
+						<select onchange="updateTPChoice(this.value)" id="tp-selector">
+							<option value="Wood"><img src="assets/icon/wood.png">  Wood</option>
+							<option value="Fish"><img src="assets/icon/fish.png">  Fish</option>
+							<option value="Carrot"><img src="assets/icon/carrot.png">  Carrot</option>
+						</select>
+					</div>
+					<div id="tower-ui" style="display:none; background:#f0f7ff; padding:10px; margin-top:5px;">
+						Link to: <input type="text" id="tower-input" placeholder="e.g. A5" oninput="updateTowerLink(this.value)" style="width: 60px; text-transform: uppercase;">
+					</div>
 				</div>
-                <div class="btn-group">
-                    <button onclick="applyFeature('res', 'Wood')" id="btn-Wood"><img src="assets/icon/wood.png"> Wood</button>
-                    <button onclick="applyFeature('res', 'Fish')" id="btn-Fish"><img src="assets/icon/fish.png"> Fish</button>
-                    <button onclick="applyFeature('res', 'Carrot')" id="btn-Carrot"><img src="assets/icon/carrot.png"> Carrot</button>
-                    <button onclick="applyFeature('res', 'Mushroom')" id="btn-Mushroom"><img src="assets/icon/mushroom.png"> Mushroom</button>
-                    <button onclick="applyFeature('res', 'Pearl')" id="btn-Pearl"><img src="assets/icon/pearl.png"> Pearl</button>
-                    <button onclick="applyFeature('res', 'Spice')" id="btn-Spice"><img src="assets/icon/spice.png"> Spices</button>
-                    <button onclick="applyFeature('res', 'Diamond')" id="btn-Diamond"><img src="assets/icon/diamond.png"> Diamonds</button>
-                    <button onclick="applyFeature('res', 'Clay')" id="btn-Clay"><img src="assets/icon/clay.png"> Clay</button>
-                    <button onclick="applyFeature('res', 'Gold')" id="btn-Gold"><img src="assets/icon/gold.png"> Gold</button>
-                    <button onclick="applyFeature('res', 'Metal')" id="btn-Metal"><img src="assets/icon/metal.png"> Metal</button>
-                    <span id="sky-res-tokens" style="display:none; gap:4px;">
-                        <button onclick="applyFeature('res', 'CloudThread')" id="btn-CloudThread"><img src="assets/icon/thread.png"> Cloud Thread</button>
-                        <button onclick="applyFeature('res', 'GiantChicks')" id="btn-GiantChicks"><img src="assets/icon/chick.png"> Giant Chicks</button>
-                    </span>
-                </div>
-                <div class="btn-group">
-                    <button onclick="applyFeature('tower', -1)" id="btn-Tower"><img src="assets/icon/skytower.png">  Sky Tower</button>
-                    <button onclick="applyFeature('tradingpost', 'Wood')" id="btn-TradingPost"><img src="assets/icon/tradepost.png">  Trading Post</button>
-                    <span id="sky-only-tokens" style="display:none; gap:4px;">
-                        <button onclick="applyFeature('rainbow', 'gold')" id="btn-RainbowGold"><img src="assets/icon/rainbow-gold.png">  Rainbow (Gold)</button>
-                        <button onclick="applyFeature('rainbow', 'silver')" id="btn-RainbowSilver"><img src="assets/icon/rainbow-silver.png">  Rainbow (Silver)</button>
-                        <button onclick="applyFeature('chimney', true)" id="btn-Chimney"><img src="assets/icon/chimney.png">  Chimney</button>
-                    </span>
-                    <button style="flex:1" onclick="clearTileTokens()">Remove Token</button>
-                </div>
-				<div id="tower-config-ui" class="exp-ui-box tp-config" style="display:none">
-					<strong>Tower Color:</strong>
-					<select onchange="updateTowerColor(this.value)" id="tower-color-selector">
-						<option value="teal">Teal Pair</option>
-						<option value="blue">Blue Pair</option>
-						<option value="black">Black Pair</option>
-					</select>
-				</div>
-                <div id="tp-ui" class="exp-ui-box tp-config" style="display:none">
-                    <strong>Trading Post Choice:</strong>
-                    <select onchange="updateTPChoice(this.value)" id="tp-selector">
-                        <option value="Wood"><img src="assets/icon/wood.png">  Wood</option>
-                        <option value="Fish"><img src="assets/icon/fish.png">  Fish</option>
-                        <option value="Carrot"><img src="assets/icon/carrot.png">  Carrot</option>
-                    </select>
-                </div>
-                <div id="tower-ui" style="display:none; background:#f0f7ff; padding:10px; margin-top:5px;">
-                    Link to: <input type="text" id="tower-input" placeholder="e.g. A5" oninput="updateTowerLink(this.value)" style="width: 60px; text-transform: uppercase;">
-                </div>
-            </div>
-        </div>
+			</div>
+		</div>
         <button class="danger-btn" onclick="resetEntireBoard()">Reset</button>
 
         <div id="footer-credits" style="margin-top: auto; padding: 20px 0; text-align: center; color: #999; font-size: 10px; line-height: 1.5;">
@@ -692,14 +785,41 @@ function toggleExpansion() {
 }
 
 function selectTile(idx) {
+    document.querySelectorAll('.tile').forEach(t => {
+        t.classList.remove('selected');
+        t.style.outline = "none"; 
+    });
+
     selectedIdx = idx;
-    document.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
-    document.getElementById(`tile-${idx}`).classList.add('selected');
-    document.getElementById('editor-panel').style.display = 'block';
-    const tile = gridData.find(t=>t.id===idx);
+    
+    const selectedTileEl = document.getElementById(`tile-${idx}`);
+    if (selectedTileEl) {
+        selectedTileEl.classList.add('selected');
+    }
+
+    const modal = document.getElementById('modal-overlay');
+    modal.style.display = 'flex';
+    
+    const tile = gridData.find(t => t.id === idx);
     document.getElementById('tile-coord-header').innerText = tile.coord + ` (${tile.type})`;
+    
     updateUI();
 }
+
+function closeModal() {
+    document.getElementById('modal-overlay').style.display = 'none';
+    
+    document.querySelectorAll('.tile').forEach(t => {
+        t.classList.remove('selected');
+        t.style.outline = "none";
+    });
+    
+    selectedIdx = null;
+}
+
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
 
 function updateUI() {
     const tile = gridData.find(t => t.id === selectedIdx);
