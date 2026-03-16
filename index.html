@@ -97,8 +97,29 @@
 			position: relative; 
 			box-sizing: border-box; 
 			background-size: cover;
+			background-position: center;
 			aspect-ratio: 1 / 1;
 		}
+		.tile > div {
+			position: relative;
+			z-index: 2;
+		}
+		.tile.has-central-station::before {
+			content: "";
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-image: url('assets/tiles/CentralStation.png');
+			background-size: cover;
+			background-repeat: no-repeat;
+			z-index: 1; /* Sits behind bunnies and resource icons */
+			pointer-events: none;
+		}	
+		.tile.rot-90::before  { transform: rotate(90deg); }
+		.tile.rot-180::before { transform: rotate(180deg); }
+		.tile.rot-270::before { transform: rotate(270deg); }
         .tile:hover { 
 			transform: scale(1.05);
 		}
@@ -141,32 +162,36 @@
 			object-fit: contain;
 		}
         .player-center {
-			width: 100%;
-			height: 100%;
+			position: absolute;
+			width: 50%;
+			height: 50%;
 			display: flex;
 			align-items: center;
 			justify-content: center;
+			pointer-events: none;
+			z-index: 200;
 		}
 		.player-center img {
 			width: 50% !important;
 			height: auto !important;
 			transform: none !important; 
+			z-index: 200;
 		}
-		
-		.feature-bottom-right {
+		.tile-occupant {
 			position: absolute;
-			bottom: 0; 
-			right: 0; 
-			z-index: 2;
-			pointer-events: none;
-			width: 100%;  
-			height: 100%; 
-			display: flex;
-			align-items: flex-end;  
-			justify-content: flex-end;
-			line-height: 1;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			width: 80%;
+			height: 80%;
+			object-fit: contain;
+			pointer-events: none; 
+			z-index: 300; 
 		}
-
+		.grid-item img {
+			position: absolute;
+			z-index: 1; /* Default layer */
+		}
 		.feature-bottom-right img {
 			width: 100%; 
 			height: 100%; 
@@ -347,24 +372,26 @@
 		}
 
 		
-		.token-res {
-			position: absolute;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
+		.token-res, .feature-bottom-right {
+			position: absolute !important;
+			bottom: 7% !important;
+			right: 7% !important;
+			width: 75% !important; /* Limit size so they stay in the corner */
+			height: 75% !important;
 			display: flex;
 			align-items: flex-end;
-			justify-content: flex-end; 
-			pointer-events: none;
-			z-index: 3;
+			justify-content: flex-end;
+			z-index: 5;
 		}
-
-		.token-res img {
-			width: 100%; 
-			height: 100%;
-			object-fit: contain; 
+		
+		.token-res img, .feature-bottom-right img {
+			max-width: 100%;
+			max-height: 100%;
+			object-fit: contain;
 		}
+		
+		.token-res { align-items: flex-end; justify-content: flex-end; }
+		.feature-bottom-right { align-items: flex-end; justify-content: flex-end; }
 
 		.default-res {
 			position: absolute;
@@ -373,9 +400,13 @@
 			pointer-events: none;
 		}
 
-		.default-res img, .ui-icon, .ui-icon-score {
+		.default-res img, .ui-icon {
 			max-width: 80%;
 			height: auto;
+		}
+		
+		.ui-icon-score {
+			height: 20px;
 		}
 
 		.btn-large {
@@ -432,6 +463,29 @@
 			}
 		}
 		
+		#btn-CentralStation, #btn-Station, #btn-Track { display: none; }
+		.express-mode #btn-CentralStation { display: inline-block; }
+		.express-mode #btn-Station { display: inline-block; }
+		express-mode #btn-Track { display: inline-block; }
+		
+		.central-station-tile {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			z-index: 1; 
+		}
+		
+		.track-visual {
+			position: absolute;
+			width: 17px; 
+			height: auto;
+			z-index: 50;
+			pointer-events: none;
+		}
+		
+		
 	</style>
 </head>
 <body>
@@ -447,8 +501,13 @@
                 <h2 id="main-title" style="margin:0">The New World</h2>
                 <div style="display:flex; align-items:center; gap:8px; font-size:14px; color:#666;">
                     <input type="checkbox" id="sky-toggle" onchange="toggleExpansion()">
-                    <label for="sky-toggle">"In The Sky" Expansion</label>
+                    <label for="sky-toggle">In The Sky</label>
                 </div>
+				<div style="display:flex; align-items:center; gap:5px; font-size:14px; color:#666;"">
+					<input type="checkbox" id="express-toggle" 
+						   onchange="document.body.classList.toggle('express-mode', this.checked); toggleExpansion();"> 
+					<label for="express-toggle">Bunny Express</label>
+				</div>
             </div>
             <div class="grid" id="game-grid"></div>
         </div>
@@ -525,6 +584,26 @@
 					<div id="tower-ui" style="display:none; background:#f0f7ff; padding:10px; margin-top:5px;">
 						Link to: <input type="text" id="tower-input" placeholder="e.g. A5" oninput="updateTowerLink(this.value)" style="width: 60px; text-transform: uppercase;">
 					</div>
+					<div class="btn-group">
+						<button id="btn-CentralStation" onclick="applyFeature('centralstation')" class="express-only">
+							<img src="assets/icon/CentralStation.png"> Central Station
+						</button>
+						<button id="btn-rotate-cs" style="display:none" onclick="rotateStation()">
+							🔄 Rotate 90°
+						</button>
+						<button onclick="applyFeature('station')" id="btn-Station" class="express-only">
+							<img src="assets/icon/station.png"> Station
+						</button>
+						<button onclick="toggleTrackUI()" id="btn-Track" class="express-only">
+							<img src="assets/icon/track.png" style="height:20px; width:auto;"> Track
+						</button>
+					</div>
+					<span id="track-arrows" class="express-only" style="display:none; gap:2px; background:#eee; padding:2px; border-radius:5px;">
+						<button onclick="placeTrack('up')" title="Top Edge" style="padding:5px 8px;">↑</button>
+						<button onclick="placeTrack('down')" title="Bottom Edge" style="padding:5px 8px;">↓</button>
+						<button onclick="placeTrack('left')" title="Left Edge" style="padding:5px 8px;">←</button>
+						<button onclick="placeTrack('right')" title="Right Edge" style="padding:5px 8px;">→</button>
+					</span>
 				</div>
 			</div>
 		</div>
@@ -587,6 +666,8 @@ const resIcons = {
 	'TradingPost-Fish': '<img src="assets/token/tradepost-fish.png" title="Trading Post">',
 	'TradingPost-Wood': '<img src="assets/token/tradepost-wood.png" title="Trading Post">',
 	'TradingPost-Carrot': '<img src="assets/token/tradepost-carrot.png" title="Trading Post">',
+	'Station': '<img src="assets/token/station.png" title="Station">',
+	'CentralStation': '<img src="assets/tiles/CentralStation.png" class="central-station-tile" title="Central Station">'
 };
 
 const uiIcons = {
@@ -645,10 +726,12 @@ const playerBunnyIcons = {
 const basicResources = ["Wood", "Fish", "Carrot"];
 
 let activePlayers = [];
+let players = [];
 let gridData = [];
 let selectedIdx = null;
 let playerChimneyRes = {}; 
 let playerCoins = {};
+let trackData = [];
 
 function initBoards() {
     gridData = [];
@@ -718,39 +801,68 @@ function createTileEl(data, idx) {
         <span class="coord-label">${data.coord}</span>
         <span class="default-res">${defIcons[data.defaultRes] || ''}</span>
         <span class="token-res"></span>
-        <div class="player-center"></div>
         <div class="feature-bottom-right"></div>
+        <div class="player-center"></div>
     `;
     return div;
 }
 
 function renderPlayerControls() {
-    const pool = document.getElementById('available-colors-pool');
-    pool.innerHTML = '';
-    
-    playerMasterList.forEach(color => {
-        if (!activePlayers.includes(color)) {
-            const btn = document.createElement('button');
-            btn.className = 'add-player-btn';
-            btn.innerHTML = `${uiIcons[color] || ''} ${color}`;
-            btn.onclick = () => addPlayer(color);
-            pool.appendChild(btn);
-        }
-    });
+    // 1. Reference the correct array: activePlayers
+    const activeColors = activePlayers; 
 
+    // 2. Update Sidebar: Add Players Pool
+    const pool = document.getElementById('available-colors-pool');
+    if (pool) {
+        pool.innerHTML = '';
+        playerMasterList.forEach(color => {
+            // Only show colors NOT currently in the game
+            if (!activeColors.includes(color)) {
+                const btn = document.createElement('button');
+                btn.className = 'add-player-btn';
+                btn.innerHTML = color;
+                btn.style.borderLeft = `8px solid ${playerColors[color]}`;
+                btn.onclick = () => addPlayer(color);
+                pool.appendChild(btn);
+            }
+        });
+    }
+
+    // 3. Update Modal: Occupant Buttons
     const occContainer = document.getElementById('tile-occupant-btns');
-    occContainer.innerHTML = '';
-    activePlayers.forEach(p => {
-        const btn = document.createElement('button');
-        btn.id = `btn-${p}`;
-        btn.innerHTML = `${playerBunnyIcons[p]} ${p}`;
-        btn.onclick = () => togglePlayer(p);
-        occContainer.appendChild(btn);
-    });
-    const noneBtn = document.createElement('button');
-    noneBtn.id = 'btn-None'; noneBtn.innerText = 'None';
-    noneBtn.onclick = () => togglePlayer(null);
-    occContainer.appendChild(noneBtn);
+    if (occContainer) {
+        occContainer.innerHTML = '';
+        
+        // Use activeColors (the players currently in the game)
+        activeColors.forEach(color => {
+            const btn = document.createElement('button');
+            btn.className = 'player-toggle-btn';
+            btn.innerHTML = color;
+            
+            // Check if this player owns the currently selected tile
+            const currentTile = gridData.find(t => t.id === selectedIdx);
+            if (currentTile && currentTile.owner === color) {
+                btn.classList.add('active-btn');
+                btn.style.backgroundColor = playerColors[color];
+                btn.style.color = 'white';
+            }
+
+            btn.onclick = () => {
+                togglePlayer(color);
+                renderPlayerControls(); 
+            };
+            occContainer.appendChild(btn);
+        });
+
+        // Add the 'None' button to clear occupancy
+        const noneBtn = document.createElement('button');
+        noneBtn.innerText = 'None';
+        noneBtn.onclick = () => {
+            togglePlayer(null);
+            renderPlayerControls();
+        };
+        occContainer.appendChild(noneBtn);
+    }
 }
 
 function addPlayer(color) {
@@ -758,10 +870,10 @@ function addPlayer(color) {
         activePlayers.push(color);
         playerChimneyRes[color] = 'Wood';
         playerCoins[color] = 0;
-        renderPlayerControls();
         calculateScores();
         if(selectedIdx !== null) updateUI();
     }
+	renderPlayerControls();
 }
 
 function removePlayer(color) {
@@ -769,18 +881,51 @@ function removePlayer(color) {
         activePlayers = activePlayers.filter(p => p !== color);
         gridData.forEach(t => { if(t.owner === color) t.owner = null; });
         gridData.forEach(t => renderTile(t.id));
-        renderPlayerControls();
         calculateScores();
         if(selectedIdx !== null) updateUI();
     }
+	renderPlayerControls();
 }
 
 function toggleExpansion() {
-    const isExpansion = document.getElementById('sky-toggle').checked;
-    document.getElementById('cloud-section').style.display = isExpansion ? 'block' : 'none';
-    document.getElementById('sky-only-tokens').style.display = isExpansion ? 'inline-flex' : 'none';
-    document.getElementById('sky-res-tokens').style.display = isExpansion ? 'inline-flex' : 'none';
-    document.getElementById('btn-carrotadel').style.display = isExpansion ? 'inline-block' : 'none';
+    const skyToggle = document.getElementById('sky-toggle');
+    const expressToggle = document.getElementById('express-toggle');
+    if (!skyToggle || !expressToggle) return;
+	
+
+    const skyEnabled = skyToggle.checked;
+    const expressEnabled = expressToggle.checked;
+
+    // Helper to safely set display
+    const setDisplay = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = val;
+    };
+
+    // "In the Sky" Logic
+    setDisplay('cloud-section', skyEnabled ? 'block' : 'none');
+    setDisplay('sky-only-tokens', skyEnabled ? 'inline-flex' : 'none');
+    setDisplay('sky-res-tokens', skyEnabled ? 'inline-flex' : 'none');
+    setDisplay('btn-carrotadel', skyEnabled ? 'inline-block' : 'none');
+
+    // "Bunny Express" Logic
+    setDisplay('btn-CentralStation', expressEnabled ? 'inline-block' : 'none');
+    setDisplay('btn-Station', expressEnabled ? 'inline-block' : 'none');
+	setDisplay('btn-Track', expressEnabled ? 'inline-block' : 'none');
+    
+    if (!expressEnabled) {
+        document.querySelectorAll('.track-visual').forEach(el => el.remove());
+    } else if (typeof renderAllTracks === "function") {
+        renderAllTracks();
+    }
+
+    gridData.forEach(t => renderTile(t.id));
+    
+    // RE-RUN the player controls after toggling expansion to ensure they appear
+    if (typeof renderPlayerControls === "function") {
+        renderPlayerControls();
+    }
+    
     calculateScores();
 }
 
@@ -803,12 +948,13 @@ function selectTile(idx) {
     const tile = gridData.find(t => t.id === idx);
     document.getElementById('tile-coord-header').innerText = tile.coord + ` (${tile.type})`;
     
+	renderPlayerControls();
     updateUI();
 }
 
 function closeModal() {
     document.getElementById('modal-overlay').style.display = 'none';
-    
+    document.getElementById('track-direction-selector').style.display = 'none';
     document.querySelectorAll('.tile').forEach(t => {
         t.classList.remove('selected');
         t.style.outline = "none";
@@ -843,7 +989,8 @@ function updateUI() {
         const linkedTile = gridData.find(t => t.id === tile.tower);
         document.getElementById('tower-input').value = linkedTile ? linkedTile.coord : "";
     }
-
+	
+	document.getElementById('btn-rotate-cs').style.display = tile.centralStation ? 'inline-flex' : 'none';
     document.getElementById('tp-ui').style.display = (tile.tradingpost !== null) ? 'block' : 'none';
 }
 
@@ -868,56 +1015,196 @@ function renderTile(idx) {
     const el = document.getElementById(`tile-${idx}`);
     if (!el) return;
 
-    el.querySelector('.player-center').innerHTML = t.owner ? playerBunnyIcons[t.owner] : "";
+    const expressEnabled = document.getElementById('express-toggle').checked;
 
-    const tokenResEl = el.querySelector('.token-res');
-    tokenResEl.innerHTML = t.res ? resIcons[t.res] : "";
+    // 1. Completely clear station/rotation classes first
+    el.classList.remove('has-central-station', 'rot-90', 'rot-180', 'rot-270');
 
-    let featureHtml = "";
-    
-    if (t.wondrous) {
-        featureHtml = resIcons[t.wondrous];
-    } else if (t.rainbowFixed === 'gold' || t.rainbow === 'gold') {
-        featureHtml = resIcons['RainbowGold'];
-    } else if (t.rainbowFixed === 'silver' || t.rainbow === 'silver') {
-        featureHtml = resIcons['RainbowSilver'];
-    } else if (t.carrotadel) {
-        featureHtml = resIcons['Carrotadel'];
-    } else if (t.chimney) {
-        featureHtml = resIcons['Chimney'];
-	} else if (t.tradingpost) {
-        const tpKey = t.tradingpost ? `TradingPost-${t.tradingpost}` : 'TradingPost';
-        featureHtml = resIcons[tpKey] || resIcons['TradingPost'];
-    } else if (t.city > 0) {
-        featureHtml = resIcons[`City${t.city}`];
-	} else if (t.tower !== null) {
-        const towerKey = t.towerColor ? `Tower-${t.towerColor}` : 'Tower';
-        featureHtml = resIcons[towerKey] || resIcons['Tower'];
+    if (t.centralStation && expressEnabled) {
+        el.classList.add('has-central-station');
+        // Add rotation class (ensure t.csRotation is 90, 180, or 270)
+        if (t.csRotation) {
+            el.classList.add(`rot-${t.csRotation}`);
+        }
+        
+        // Hide resource tokens as per rules (Station replaces them)
+        el.querySelector('.token-res').innerHTML = "";
+        el.querySelector('.feature-bottom-right').innerHTML = "";
+    } else {
+        // 2. Standard Rendering for non-station tiles
+        el.querySelector('.token-res').innerHTML = t.res ? resIcons[t.res] : "";
+        
+        let featureHtml = "";
+        if (t.wondrous) featureHtml = resIcons[t.wondrous];
+        else if (t.rainbowFixed === 'gold' || t.rainbow === 'gold') featureHtml = resIcons['RainbowGold'];
+        else if (t.rainbowFixed === 'silver' || t.rainbow === 'silver') featureHtml = resIcons['RainbowSilver'];
+        else if (t.carrotadel) featureHtml = resIcons['Carrotadel'];
+        else if (t.chimney) featureHtml = resIcons['Chimney'];
+        else if (t.tradingpost) featureHtml = resIcons[t.tradingpost ? `TradingPost-${t.tradingpost}` : 'TradingPost'];
+		else if (t.station) featureHtml = resIcons['Station'];
+        else if (t.city > 0) featureHtml = resIcons[`City${t.city}`];
+        else if (t.tower !== null) {
+            const towerKey = t.towerColor ? `Tower-${t.towerColor}` : 'Tower';
+            featureHtml = resIcons[towerKey] || resIcons['Tower'];
+        }
+        el.querySelector('.feature-bottom-right').innerHTML = featureHtml;
     }
-    
-    el.querySelector('.feature-bottom-right').innerHTML = featureHtml;
+
+    // 3. Always keep the bunny centered on top
+    el.querySelector('.player-center').innerHTML = t.owner ? playerBunnyIcons[t.owner] : "";
 }
 
 function applyFeature(type, val) {
-const tile = gridData.find(t => t.id === selectedIdx);
+    const tile = gridData.find(t => t.id === selectedIdx);
     if (tile.isLocked) return;
     
-    tile.city = (tile.type === 'City' ? 1 : 0); 
-    tile.res = null; tile.tower = null; tile.towerColor = null; 
-    tile.carrotadel = false; tile.rainbow = null; 
-    tile.chimney = false; tile.tradingpost = null;
-	
-    if (type === 'city') tile.city = val;
-    else if (type === 'res') tile.res = val;
-    else if (type === 'tower') {
-        tile.tower = -1;
-        tile.towerColor = 'teal'; 
+    // 1. Handle Central Station (The Tile)
+    if (type === 'centralstation') {
+    tile.centralStation = !tile.centralStation;
+    if (tile.centralStation) {
+        tile.station = false; 
+        tile.city = 0; 
+        tile.res = null; 
+        tile.tower = null;
+        tile.carrotadel = false; 
+        tile.chimney = false; 
+        tile.tradingpost = null;
+        tile.wondrous = null; // Add this to clear luxury/wondrous resources
     }
-    else if (type === 'carrotadel') tile.carrotadel = true;
-    else if (type === 'chimney') tile.chimney = true;
-    else if (type === 'tradingpost') tile.tradingpost = val;
-    else if (type === 'rainbow') tile.rainbow = val;
-    renderTile(selectedIdx); updateUI(); calculateScores();
+} 
+    // 2. Handle Station Token (The Token)
+    else if (type === 'station') {
+        tile.station = !tile.station; // Toggle
+        if (tile.station) {
+            // Clear Central Station and other buildings if placing a token
+            tile.centralStation = false;
+            tile.city = 0; tile.tower = null; tile.carrotadel = false; 
+            tile.chimney = false; tile.tradingpost = null;
+        }
+    }
+    // 3. Handle all other features
+    else {
+        tile.centralStation = false;
+        tile.station = false;
+        
+        tile.city = (tile.type === 'City' ? 1 : 0); 
+        tile.res = null; tile.tower = null; tile.towerColor = null; 
+        tile.carrotadel = false; tile.rainbow = null; 
+        tile.chimney = false; tile.tradingpost = null;
+
+        if (type === 'city') tile.city = val;
+        else if (type === 'res') tile.res = val;
+        else if (type === 'tower') { tile.tower = -1; tile.towerColor = 'teal'; }
+        else if (type === 'carrotadel') tile.carrotadel = true;
+        else if (type === 'chimney') tile.chimney = true;
+        else if (type === 'tradingpost') tile.tradingpost = val;
+        else if (type === 'rainbow') tile.rainbow = val;
+    }
+
+    renderTile(selectedIdx);
+    updateUI();
+    calculateScores();
+}
+
+function rotateStation() {
+    const tile = gridData.find(t => t.id === selectedIdx);
+    if (tile && tile.centralStation) {
+        tile.csRotation = ((tile.csRotation || 0) + 90) % 360;
+        renderTile(selectedIdx);
+        calculateScores();
+    }
+}
+
+function toggleTrackUI() {
+    const arrows = document.getElementById('track-arrows');
+    // Simple toggle between none and inline-flex to keep them on one line
+    arrows.style.display = (arrows.style.display === 'none') ? 'inline-flex' : 'none';
+}
+
+function placeTrack(dir) {
+    let neighborId = null;
+    
+    if (selectedIdx < 100) { // Main Board
+        if (dir === 'up' && selectedIdx >= 10) neighborId = selectedIdx - 10;
+        if (dir === 'down' && selectedIdx < 90) neighborId = selectedIdx + 10;
+        if (dir === 'left' && selectedIdx % 10 !== 0) neighborId = selectedIdx - 1;
+        if (dir === 'right' && selectedIdx % 10 !== 9) neighborId = selectedIdx + 1;
+    } 
+    // Add Sky Board logic here later if needed
+
+    if (neighborId !== null) {
+        toggleTrackConnection(selectedIdx, neighborId);
+    }
+}
+
+function toggleTrack(idA, idB) {
+    // Sort IDs so [1, 11] and [11, 1] are treated as the same edge
+    const edge = [idA, idB].sort((a, b) => a - b);
+    const index = trackData.findIndex(t => t[0] === edge[0] && t[1] === edge[1]);
+
+    if (index > -1) {
+        trackData.splice(index, 1); // Remove if exists
+    } else {
+        trackData.push(edge); // Add if new
+    }
+
+    renderAllTracks(); // We'll need a way to draw these
+    calculateScores();
+}
+
+function toggleTrackConnection(idA, idB) {
+    const expressEnabled = document.getElementById('express-toggle').checked;
+    if (!expressEnabled) return;
+
+    const edge = [idA, idB].sort((a, b) => a - b);
+    const idx = trackData.findIndex(e => e[0] === edge[0] && e[1] === edge[1]);
+
+    if (idx > -1) {
+        trackData.splice(idx, 1);
+    } else {
+        trackData.push(edge);
+    }
+
+    renderAllTracks();
+    calculateScores();
+}
+
+function renderAllTracks() {
+    document.querySelectorAll('.track-visual').forEach(el => el.remove());
+    const container = document.getElementById('grid-container');
+
+    trackData.forEach(edge => {
+        const [idA, idB] = edge;
+        const elA = document.getElementById(`tile-${idA}`);
+        if (!elA) return;
+
+        const img = document.createElement('img');
+        img.src = 'assets/token/track.png';
+        img.className = 'track-visual';
+
+        const topA = elA.offsetTop;
+        const leftA = elA.offsetLeft;
+        const size = elA.offsetWidth;
+
+        // Check if the connection is Vertical (Up/Down)
+        const isVertical = Math.abs(idA - idB) >= 10;
+
+        if (isVertical) {
+            // Place on the HORIZONTAL line between Top/Bottom tiles
+            // We rotate this 90deg because the "vertical" connection needs a horizontal track visual
+            img.style.top = (topA + size) + 'px';
+            img.style.left = (leftA + size / 2) + 'px';
+            img.style.transform = 'translate(-50%, -50%) rotate(90deg)';
+        } else {
+            // Place on the VERTICAL line between Left/Right tiles
+            // No rotation needed for a vertical track visual on a vertical line
+            img.style.top = (topA + size / 2) + 'px';
+            img.style.left = (leftA + size) + 'px';
+            img.style.transform = 'translate(-50%, -50%)';
+        }
+
+        container.appendChild(img);
+    });
 }
 
 function clearTileTokens() {
@@ -946,6 +1233,21 @@ function calculateScores() {
     activePlayers.forEach(p => {
         let visited = new Set(), totalHarvest = 0, count = 0, fiefDetails = [], globalResKeys = {};
         let playerHasChimney = gridData.some(t => t.owner === p && t.chimney);
+		
+		// --- NEW: Railroad Scoring Logic ---
+		// 1. Get all unique tile IDs involved in tracks
+		let railroadTileIds = new Set();
+		trackData.forEach(edge => {
+			railroadTileIds.add(edge[0]);
+			railroadTileIds.add(edge[1]);
+		});
+
+		// 2. Filter for tiles owned by current player 'p' that are on the railroad
+		let playerRailroadTiles = gridData.filter(t => t.owner === p && railroadTileIds.has(t.id));
+
+		// 3. Tally City Levels and City Count
+		let rrCityLevels = playerRailroadTiles.reduce((sum, t) => sum + (t.city || 0), 0);
+		let rrCityCount = playerRailroadTiles.filter(t => t.city > 0).length;
 
         gridData.forEach(tile => {
             if (tile.owner === p && !visited.has(tile.id)) {
@@ -970,11 +1272,15 @@ function calculateScores() {
                 
                 let fiefResKeys = new Set();
                 fiefTiles.forEach(t => {
-                    if (t.defaultRes) fiefResKeys.add(t.defaultRes);
-                    if (t.tradingpost) fiefResKeys.add(t.tradingpost);
-                    if (t.res) fiefResKeys.add(t.res);
-                    if (t.wondrous) fiefResKeys.add(t.wondrous);
-                });
+					if (t.centralStation) {
+						t.isStation = true; 
+					} else {
+						if (t.defaultRes) fiefResKeys.add(t.defaultRes);
+						if (t.tradingpost) fiefResKeys.add(t.tradingpost);
+						if (t.res) fiefResKeys.add(t.res);
+						if (t.wondrous) fiefResKeys.add(t.wondrous);
+					}
+				});
                 if (playerHasChimney && fiefTiles.some(t => t.id < 100)) fiefResKeys.add(playerChimneyRes[p]);
                 
                 let fiefScore = strength * fiefResKeys.size;
@@ -986,9 +1292,11 @@ function calculateScores() {
             }
             if (tile.owner === p) {
                 count++;
-                [tile.defaultRes, tile.tradingpost, tile.res, tile.wondrous].forEach(key => { 
-                    if(key) globalResKeys[key] = (globalResKeys[key] || 0) + 1; 
-                });
+				if (!tile.centralStation) { 
+					[tile.defaultRes, tile.tradingpost, tile.res, tile.wondrous].forEach(key => { 
+						if(key) globalResKeys[key] = (globalResKeys[key] || 0) + 1; 
+					});
+				}
             }
         });
 
@@ -1003,23 +1311,43 @@ function calculateScores() {
                 <div style="display:flex; justify-content:space-between; align-items:center;"><strong>Coins:</strong><input type="number" value="${playerCoins[p]}" oninput="updateCoins('${p}', this.value)" style="width:40px"></div>
                 <div style="font-weight:bold; color: #2e7d32; display:flex; justify-content:space-between;"><span>Trade Score:</span><span>+${tradeScore} <img src="assets/icon/score.png" class="ui-icon-score"></span></div>
             </div>` : '';
+			
+		// --- ADD RAILROAD UI LOGIC HERE ---
+        const expressToggle = document.getElementById('express-toggle');
+        const expressEnabled = expressToggle && expressToggle.checked;
+        
+        let railroadUI = (expressEnabled && rrCityCount > 0) ? `
+            <div class="exp-ui-box" style="background: #e3f2fd; border: 1px solid #bbdefb; margin-bottom: 8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong>Railroad:</strong>
+                    <span style="font-weight:bold; color: #1976d2;">
+                        +${rrCityLevels} <img src="assets/icon/score.png" class="ui-icon-score">
+                    </span>
+                </div>
+                <div style="font-size: 11px; color: #455a64;">
+                    Cities Connected: ${rrCityCount}
+                </div>
+            </div>` : '';
 
-        html += `
+		html += `
             <details class="player-card">
                 <summary class="player-header" style="background:${playerColors[p]}">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <button class="remove-player" onclick="event.stopPropagation(); removePlayer('${p}')">×</button>
                         <span>${p}</span>
                     </div>
-                    <span>${totalHarvest + tradeScore} <img src="assets/icon/score.png" class="ui-icon-score"></span>
+                    <span>${totalHarvest + tradeScore + (rrCityLevels || 0)} <img src="assets/icon/score.png" class="ui-icon-score"></span>
                 </summary>
                 <div class="player-stats">
+                    ${railroadUI}
                     ${expansionUI}
                     <div style="font-weight:bold; margin-bottom:5px; font-size:13px;">Harvest: ${count} Tiles | ${fiefDetails.length} Fiefs</div>
                     <div style="margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">${summaryPills || 'No resources'}</div>
                     ${fiefHtml || '<div style="color:#999">No fiefs</div>'}
                 </div>
             </details>`;
+			
+			
     });
     document.getElementById('score-display').innerHTML = html;
 }
